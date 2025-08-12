@@ -1,9 +1,9 @@
-import { marked } from 'marked';
+import { marked, Token } from 'marked';
 import DOMPurify from 'dompurify';
 
 export interface ParsedMarkdown {
   html: string;
-  tokens: marked.Token[];
+  tokens: Token[];
   plainText: string;
 }
 
@@ -37,7 +37,6 @@ export class MarkdownParser {
     marked.setOptions({
       breaks: this.options.breaks,
       gfm: this.options.gfm,
-      sanitize: false, // We'll handle sanitization with DOMPurify
     });
 
     // Custom renderer to control output
@@ -88,7 +87,6 @@ export class MarkdownParser {
           'table', 'thead', 'tbody', 'tr', 'td', 'th'
         ],
         ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'target', 'rel'],
-        FORBID_SCRIPTS: true,
         FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input'],
         FORBID_ATTR: ['onclick', 'onload', 'onerror', 'onmouseover', 'style'],
       });
@@ -107,7 +105,7 @@ export class MarkdownParser {
   /**
    * Convert markdown tokens to structured JSON
    */
-  public toJSON(tokens: marked.Token[]): object {
+  public toJSON(tokens: Token[]): object {
     return {
       type: 'document',
       children: tokens.map(token => this.tokenToJSON(token)),
@@ -117,11 +115,11 @@ export class MarkdownParser {
   /**
    * Convert markdown to plain text with basic formatting
    */
-  private toPlainText(tokens: marked.Token[]): string {
+  private toPlainText(tokens: Token[]): string {
     return tokens.map(token => this.tokenToPlainText(token)).join('\n\n');
   }
 
-  private tokenToJSON(token: marked.Token): object {
+  private tokenToJSON(token: Token): object {
     const base = { type: token.type };
 
     switch (token.type) {
@@ -140,7 +138,7 @@ export class MarkdownParser {
         return {
           ...base,
           ordered: token.ordered,
-          items: token.items.map(item => ({
+          items: token.items.map((item: any) => ({
             type: 'list_item',
             text: item.text,
           })),
@@ -164,7 +162,7 @@ export class MarkdownParser {
     }
   }
 
-  private tokenToPlainText(token: marked.Token): string {
+  private tokenToPlainText(token: Token): string {
     switch (token.type) {
       case 'heading':
         const prefix = '#'.repeat(token.depth);
@@ -173,7 +171,7 @@ export class MarkdownParser {
         return token.text;
       case 'list':
         return token.items
-          .map((item, index) => {
+          .map((item: any, index: number) => {
             const bullet = token.ordered ? `${index + 1}.` : '•';
             return `${bullet} ${item.text}`;
           })
